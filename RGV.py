@@ -59,7 +59,7 @@ class RGV:
                 self.target = get_target_by_id(self.identity)
                 self.stat = Status.Move
                 self.tick_fin = distance(self.target, self) / self.velocity
-                
+
             elif self.stat == Status.Move:
                 pass
             return self.tick_fin
