@@ -3,6 +3,7 @@ from itertools import chain
 import numpy as np
 from queue import Queue
 from random import randint
+from
 
 work_in_mat = np.delete(np.array(read_xls('B题附件1.xlsx', has_head=True)), 0, axis=1).astype(np.int)
 work_out_mat = np.delete(np.array(read_xls('B题附件2.xlsx', has_head=True)), 0, axis=1).astype(np.int)
@@ -13,6 +14,9 @@ B_queue: List[List] = work_out_mat.T.tolist()
 for q in B_queue:
     if 0 in q:
         q.remove(0)
+
+port_loc = [i * 47 / 6 for i in range(1, 6)] + [50 + i * 47 / 9 for i in range(1, 9)]
+Port_queue =
 
 
 def init_plan():
