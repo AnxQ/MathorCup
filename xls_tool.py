@@ -19,5 +19,6 @@ def read_xls(file_name: str, sheet_idx=0, has_head=False, limit=(0, 0)) -> List[
     sheet = book.sheet_by_index(sheet_idx)
     result_mat = []
     for i in range(1 if has_head else 0, sheet.nrows if limit[0] == 0 else limit[0]):
-        result_mat.append(sheet.row_values(i))
+        result_mat.append([0 if x == "" else x for x in sheet.row_values(i)])
     return result_mat
+

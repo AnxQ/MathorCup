@@ -1,5 +1,6 @@
 from enum import Enum
-from typing import List
+import queue
+from typing import List, Callable
 
 
 # TODO: Record the A-out as output B-out as input
@@ -19,6 +20,7 @@ class RGV_queue(list):
 def time_arrived(p, r):
     return (p.location - r.location) / r.speed
 
+
 def distance(p, r):
     return p.location - r.location if p.location - r.location > 0 else p.location - r.location + 100
 
@@ -28,9 +30,17 @@ def distance(p, r):
 class Port:
     identity: int
     location: float
+    record_item: queue
+
+    def __init__(self, identity, location, ):
+        pass
+
+    def transport(self, r, tick):
+        self.record_item.append([r.identity, tick])
 
 
 def get_target_by_id(id) -> Port:
+    # 任务分配
     return 0
 
 
@@ -54,34 +64,40 @@ class RGV:
         """
         rgv_front: RGV = queue.front(self)
         if tick_cur == self.tick_fin:
-            # 由于本车最先执行完动作导致的时刻刷新
             if self.stat == Status.Work:
+                # 由于本车最先执行完动作导致的时刻刷新
                 self.target = get_target_by_id(self.identity)
                 self.stat = Status.Move
                 self.tick_fin = distance(self.target, self) / self.velocity
-
             elif self.stat == Status.Move:
-                pass
+                # 由于移动到位导致的刷新
+                self.stat = Status.Work
+                self.target.transport(self, tick_cur)
+                self.tick_fin += self.period_work
+            elif self.stat == Status.Wait:
+                # 等待完成导致刷新
+                self.stat = Status.Move
+                self.tick_fin = distance(self.target, self) / self.velocity
+            self.tick_rec = tick_cur
             return self.tick_fin
         elif self.stat == Status.Move:
             # 由于前车已完成update，且自己的移动动作此时也未完成，要考虑前方是否进入等待状态
             approach_dis = (tick_cur - self.tick_rec) * self.velocity
             impact_dis = distance(queue.front(self), self) - self.length
-            if impact_dis <= approach_dis:
-                # 获取前方预计等待时间 决定自己的time_fin
-                self.wait()
+            if impact_dis < approach_dis:
+                # 获取前方预计等待时间 决定自己的tick_fin(此时为等待完成时间) 置入等待状态
+                # 这会导致完成时间提前/延后 因此需要之后以等待完成位置再次计算移动完成时间
+                self.stat = Status.Wait
+                self.location = (self.location + impact_dis) % 100
+                self.tick_fin = rgv_front.tick_fin - impact_dis / self.velocity
             else:
+                # 不遇前车的情况 直接选择前进 不修改完成时刻
                 self.location = (self.location + approach_dis) % 100
         elif self.stat == Status.Work:
             # 尚在工作,且未完成
-            self.tick_rec = tick_cur
+            pass
         else:
             # 等待状态
-
-
-
-    def wait(self, queue: RGV_queue, tick_cur):
-        if self.stat == Status.Work:
-            return self.tick_fin - tick_cur
-        rgv_front: RGV = queue.front(self)
-        rgv_front.wait_time(queue, tick_cur)
+            pass
+        self.tick_rec = tick_cur
+        return self.tick_fin
