@@ -3,8 +3,6 @@ import queue
 from typing import List, Callable
 
 
-# TODO: Record the A-out as output B-out as input
-
 class Status(Enum):
     Move = 1
     Wait = 2
@@ -28,8 +26,6 @@ def time_arrived(p, r):
 def distance(p, r):
     return p.location - r.location if p.location - r.location > 0 else p.location - r.location + 100
 
-
-# TODO: Get next RGV destination for the RGV id
 
 class Port:
     identity: str
@@ -55,7 +51,7 @@ class Port:
 class RGV:
     identity: int
     velocity = 1.5
-    length = 1.3
+    length: int
     period_work = 10
     tick_fin: float = 0
     tick_rec: float = 0
@@ -63,18 +59,21 @@ class RGV:
     location: float
     target: Port
 
+    time_wait: float = 0
+    freq_wait: int = 0
+
     def __repr__(self):
         return f"<ID:{self.identity}, Location:{self.location:.2f}, Status:{self.stat.name}, Target:{self.target}>"
 
-    def __init__(self, identity, location):
+    def __init__(self, identity, location, length):
         self.identity = identity
         self.location = location
+        self.length = length
 
     def start(self, target):
         self.target = target
         self.tick_fin = distance(target, self) / self.velocity
         self.stat = Status.Move
-
 
     def update(self, tick_cur, queue: RGV_queue, get_target: Callable, display=False):
         """
@@ -113,12 +112,15 @@ class RGV:
             # 由于前车已完成update，且自己的移动动作此时也未完成，要考虑前方是否进入等待状态
             approach_dis = (tick_cur - self.tick_rec) * self.velocity
             impact_dis = distance(rgv_front, self) - self.length
-            if impact_dis < approach_dis:
+            inferred_wait = rgv_front.tick_fin - impact_dis / self.velocity
+            if impact_dis < approach_dis and inferred_wait > tick_cur:
                 # 获取前方预计等待时间 决定自己的tick_fin(此时为等待完成时间) 置入等待状态
                 # 这会导致完成时间提前/延后 因此需要之后以等待完成位置再次计算移动完成时间
                 self.stat = Status.Wait
+                self.freq_wait += 1
+                self.time_wait += inferred_wait - tick_cur
                 self.location = (self.location + impact_dis) % 100
-                self.tick_fin = rgv_front.tick_fin - impact_dis / self.velocity
+                self.tick_fin = inferred_wait
             else:
                 # 不遇前车的情况 直接选择前进 不修改完成时刻
                 self.location = (self.location + approach_dis) % 100
