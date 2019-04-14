@@ -7,7 +7,7 @@ from machine import Port, RGV, RGV_queue, Status
 
 work_in_mat: np.ndarray = np.delete(np.array(read_xls('B题附件1.xlsx', has_head=True)), 0, axis=1).astype(np.int)
 work_out_mat: np.ndarray = np.delete(np.array(read_xls('B题附件2.xlsx', has_head=True)), 0, axis=1).astype(np.int)
-n_rgv = 9
+n_rgv = 3
 l_rgv = 1.30
 
 A_queue: List[List] = work_in_mat.tolist()
@@ -90,7 +90,7 @@ def generation():
     pass
 
 
-def simulate(plan):
+def simulate(plan, display=False):
     plan_list = []
     for j in range(n_rgv):
         plan_list.append(list(chain.from_iterable(plan[i] for i in range(j, len(plan), n_rgv))))
@@ -111,16 +111,19 @@ def simulate(plan):
         return Ports[port_map[idx % 4][plan_list[id - 1][idx] - 1]]
 
     for i in range(n_rgv):
-        RGVs[i].start(allocate_target(i+1))
+        RGVs[i].start(allocate_target(i + 1))
 
     tick = 0
     while still_running():
         tick = min(RGVs, key=lambda x: x.tick_fin).tick_fin
         for rgv in RGVs:
-            rgv.update(tick, RGVs, allocate_target)
+            rgv.update(tick, RGVs, allocate_target, display)
+    if display:
+        print(f"Simulation Finished: {tick:.2f}s")
+    return tick
 
 
 if __name__ == "__main__":
     plan = init_plan()
-    simulate(plan)
+    simulate(plan, True)
     pass

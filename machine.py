@@ -44,11 +44,12 @@ class Port:
         self.location = location
         self._I_O = True if 'I' in self.identity else False
 
-    def transport(self, r, tick):
-        if self._I_O:
-            print(f"{tick:.2f}: Port:{self.identity} Import into RGV:{r.identity}")
-        else:
-            print(f"{tick:.2f}: Port:{self.identity} Export from RGV:{r.identity}")
+    def transport(self, r, tick, display):
+        if display:
+            if self._I_O:
+                print(f"{tick:.2f}: Port:{self.identity} Import into RGV:{r.identity}")
+            else:
+                print(f"{tick:.2f}: Port:{self.identity} Export from RGV:{r.identity}")
 
 
 class RGV:
@@ -75,7 +76,7 @@ class RGV:
         self.stat = Status.Move
 
 
-    def update(self, tick_cur, queue: RGV_queue, get_target: Callable):
+    def update(self, tick_cur, queue: RGV_queue, get_target: Callable, display=False):
         """
         将RGV状态刷新到当前时刻，由前向后
         :param tick_cur:
@@ -97,7 +98,7 @@ class RGV:
             elif self.stat == Status.Move:
                 # 由于移动到位导致的刷新
                 self.stat = Status.Work
-                self.target.transport(self, tick_cur)
+                self.target.transport(self, tick_cur, display)
                 self.tick_fin = tick_cur + self.period_work
             elif self.stat == Status.Wait:
                 # 等待完成导致刷新
@@ -105,6 +106,7 @@ class RGV:
                 self.tick_fin = tick_cur + distance(self.target, self) / self.velocity
             else:
                 self.location = (rgv_front.location - self.length) % 100
+                self.tick_fin = rgv_front.tick_fin
             self.tick_rec = tick_cur
             return self.tick_fin
         elif self.stat == Status.Move:
@@ -128,5 +130,6 @@ class RGV:
             pass
         else:
             self.location = (rgv_front.location - self.length) % 100
+            self.tick_fin = rgv_front.tick_fin
         self.tick_rec = tick_cur
         return self.tick_fin
